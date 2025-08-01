@@ -154,22 +154,24 @@ def show_battle_field(party,monster):
 def fill_gems():
     import random
     random_num = random.randint(1, 5)
-    print(f'{ELEMENT_NUMBERS[random_num]}',end=' ')
+    # print(f'{ELEMENT_NUMBERS[random_num]}',end=' ')
     return ELEMENT_NUMBERS[random_num]
 
 # *******************宝石スロット(14個分)の表示*******************
 def print_gems():
-    # (1) gemsのキー記号を取得する
-    fill_gems()
-    # (2) 取得した記号に対応する属性を取得する
-    #mon_element = monster_data['element']
-    #symbol = ELEMENT_SYMBOLS[mon_element]
-    # (3) 取得した属性に対応する色をELEMENT_COLORSから取得する
-    #mon_color = monster_data['element']
-    #color = ELEMENT_COLORS[mon_color]
-    # (4) gemsを表示する
-    #print(f'\033[3{color}m{symbol}{monster_name}{symbol}\033[0m',end='')
-    print()
+    gem = fill_gems()
+    # 記号から属性を逆引き
+    element = None
+    for key, value in ELEMENT_SYMBOLS.items():
+        if value == gem:
+            element = key
+            break
+    # 属性が見つかった場合、色コードで表示
+    if element and element in ELEMENT_COLORS:
+        color = ELEMENT_COLORS[element]
+        print(f'\033[3{color}m{gem}\033[0m', end=' ')
+    else:
+        print(gem, end=' ')
 # *******************プレイヤーターン*******************
 def on_player_turn(party,monster):
     print(f'【{party['player_name']}】のターン (HP = {party['hp']})')
