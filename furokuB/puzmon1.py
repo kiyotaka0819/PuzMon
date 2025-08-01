@@ -110,28 +110,124 @@ ELEMENT_COLORS = {
     '無':7
 }
 
+ELEMENT_NUMBERS = {
+    1:'$',
+    2:'~',
+    3:'@',
+    4:'#',
+    5:'&',
+    }
+
+ELEMENT_POSITIONS = {
+    'A':1,
+    'B':2,
+    'C':3,
+    'D':4,
+    'E':5,
+    'F':6,
+    'G':7,
+    'H':8,
+    'I':9,
+    'J':10,
+    'K':11,
+    'L':12,
+    'M':13,
+    'N':14
+    }
+
 # 関数宣言
-# 戦う
+# *******************バトルフィールドの表示*******************
+def show_battle_field(party,monster):
+    print('バトルフィールド')
+    print_monster_name(monster)
+    print(f'HP = {monster['hp']} / {monster['max_hp']}')
+    print('------------------------')
+    for positions in ELEMENT_POSITIONS:
+        print(f'{positions}',end=' ')
+    print('')
+    for element in ELEMENT_POSITIONS:
+        print_gems()
+    print('')
+    print('------------------------')
+
+# *******************宝石スロットにランダムに宝石を発生させる******************
+def fill_gems():
+    import random
+    random_num = random.randint(1, 5)
+    print(f'{ELEMENT_NUMBERS[random_num]}',end=' ')
+    return ELEMENT_NUMBERS[random_num]
+
+# *******************宝石スロット(14個分)の表示*******************
+def print_gems():
+    # (1) gemsのキー記号を取得する
+    fill_gems()
+    # (2) 取得した記号に対応する属性を取得する
+    #mon_element = monster_data['element']
+    #symbol = ELEMENT_SYMBOLS[mon_element]
+    # (3) 取得した属性に対応する色をELEMENT_COLORSから取得する
+    #mon_color = monster_data['element']
+    #color = ELEMENT_COLORS[mon_color]
+    # (4) gemsを表示する
+    #print(f'\033[3{color}m{symbol}{monster_name}{symbol}\033[0m',end='')
+    print()
+# *******************プレイヤーターン*******************
+def on_player_turn(party,monster):
+    print(f'【{party['player_name']}】のターン (HP = {party['hp']})')
+    show_battle_field(party, monster)
+    command = input('コマンド? > ')
+    damage = 500
+    # (3) 敵モンスターのHPからダメージ分の値を減らす。
+    print(f'{damage}のダメージを与えた')
+    monster['hp'] -= damage
+    print('')
+# *******************敵のターン*******************
+def on_enemy_turn(party,monster):
+    # (1) 「【〇〇〇のターン】(HP = XXX)を表示する。」
+    print('【',end='')
+    print_monster_name(monster)
+    print(f'】のターン (HP = {monster['hp']})')
+    # (3) プレイヤーのHPからダメージ分の値を減らす。
+    print(f'{monster['ap']}のダメージを与えた')
+    party['hp'] -= monster['ap']
+    print('')
+# *******************プレイヤー攻撃ダメージ計算*******************
+def do_attack(monster,command):
+    import random
+    print(random.uniform(-3,3))
+# *******************敵の攻撃ダメージ計算*******************
+def do_enemy_attack(party):
+    print("")
+# *******************戦う*******************
 def do_buttle(party,monster):
+    print('')
     print_monster_name(monster)
     print(f'が現れた！')
+    print('')
+    while party['hp'] > 0 and monster['hp'] > 0:
+        on_player_turn(party,monster)
+        if monster['hp'] <= 0:
+            continue
+        on_enemy_turn(party,monster)
     print_monster_name(monster)
     print(f'を倒した！')
-    party['hp'] = 0
     return 1
 
-# ダンジョンに入る
+# *******************ダンジョンに入る*******************
 def go_dungeon(party,monster_list):
     print(f'{party['player_name']}のパーティ(HP = {party['hp']})はダンジョンに到着した')
+    print('<パーティー編成>-----------------------')
     show_party(party)
+    print('-----------------------------------')
     monster_defeated = 0 # 倒したモンスター数
     for monster in monster_list:
         is_win = do_buttle(party,monster)
         if party['hp'] <= 0:
+            print('パーティのHPは0になった')
             print(f'「{party['player_name']}はダンジョンから逃げ出した」')
             break
         else:
             print(f'「{party['player_name']}はさらに奥へと進んだ」')
+            print('=====================================')
             monster_defeated += is_win
 
     if monster_defeated == 5:
@@ -140,7 +236,7 @@ def go_dungeon(party,monster_list):
     else:
         return monster_defeated
 
-# 装飾したモンスター名を返す
+# *******************装飾したモンスター名を返す*******************
 def print_monster_name(monster_data):
     # (1) モンスターの名前をキーnameで取得する
     monster_name = monster_data['name']
@@ -151,9 +247,9 @@ def print_monster_name(monster_data):
     mon_color = monster_data['element']
     color = ELEMENT_COLORS[mon_color]
     # (4) モンスター名を表示する
-    print(f'\033[3{color}m{symbol}{monster_name}{symbol}\033[0m ',end='')
+    print(f'\033[3{color}m{symbol}{monster_name}{symbol}\033[0m',end='')
 
-# 味方モンスターの編成
+# *******************味方モンスターの編成*******************
 def organize_party(player_name,friends):
     """
     引数
@@ -182,7 +278,7 @@ def organize_party(player_name,friends):
     # (3) ディクショナリを戻り値に指定する
     return party
 
-# パーティ情報を見る
+# *******************パーティ情報を見る*******************
 def show_party(party):
     # (1) 引数で受け取ったパーティから味方モンスターのリストを取得する。
     friends = party['friends']
@@ -197,7 +293,7 @@ def show_party(party):
     # ③ 続けて、HP・攻撃力を表示する。
         print(f'HP = {hp} 攻撃 = {ap} 防御 = {dp}')
 
-# メイン処理
+# *******************メイン処理*******************
 def main():
     print('*** Puzzle & Monsters ***')
     player_name = ''
@@ -211,5 +307,6 @@ def main():
         print(f'倒したモンスター数 = {monster_num}') # {monster_number}
     else:
         print('*** GAME OVER!! ***')
+        print(f'倒したモンスター数 = {monster_num}') # {monster_number}
 # main関数の呼び出し
 main()
