@@ -3,6 +3,7 @@
 作成者：天本
 '''
 # インポート
+from idlelib.undo import Command
 
 # グローバル変数の宣言
 # **********モンスターのディクショナリ**********
@@ -135,6 +136,9 @@ ELEMENT_POSITIONS = {
     'N':14
     }
 
+# **********宝石スロットのリスト**********
+gems_slot = []
+
 # 関数宣言
 # *******************バトルフィールドの表示*******************
 def show_battle_field(party,monster):
@@ -145,11 +149,21 @@ def show_battle_field(party,monster):
     for positions in ELEMENT_POSITIONS:
         print(f'{positions}',end=' ')
     print('')
-    for element in ELEMENT_POSITIONS:
-        print_gems()
+    print_gems(gems_slot)
     print('')
     print('------------------------')
 
+# *******************コマンドの入力内容チェック*******************
+def check_valid_command(command):
+    pattern = r'^[a-nA-N]'
+    if len(command) != 2:
+        return False
+    if not ('A' <= command[0] <= 'N' and 'A' <= command[1] <= 'N'):
+        return False
+    if command[0] == command[1]:
+        return False
+    else:
+        return True
 # *******************宝石スロットにランダムに宝石を発生させる******************
 def fill_gems():
     import random
@@ -158,6 +172,38 @@ def fill_gems():
     return ELEMENT_NUMBERS[random_num]
 
 # *******************宝石スロット(14個分)の表示*******************
+def print_gems(gems_list):
+    gem = fill_gems()
+    for gem in gems_list:
+    # 記号から属性を逆引き
+        element = None
+        for key, value in ELEMENT_SYMBOLS.items():
+            if value == gem:
+                element = key
+                break
+        # 属性が見つかった場合、色コードで表示
+        if element and element in ELEMENT_COLORS:
+            color = ELEMENT_COLORS[element]
+            print(f'\033[3{color}m{gem}\033[0m', end=' ')
+        else:
+            print(gem, end=' ')
+
+# *******************gemsの移動とプリント*******************
+def move_gem(command):
+    # ユーザーが入力したコマンドを分解
+    pos1 = command[0]
+    pos2 = command[1]
+    # 文字を数字（インデックス）に変換する
+    # リストは0から始まるから、1を引く
+    index1 = ELEMENT_POSITIONS[pos1] - 1
+    index2 = ELEMENT_POSITIONS[pos2] - 1
+
+    # 宝石を入れ替える関数を呼び出すんや！
+    swap_gem(index1, index2)
+# *******************gemsの隣との入れ替え*******************
+def swap_gem(index1, index2):
+    global gems_slot
+    gems_slot[index1], gems_slot[index2] = gems_slot[index2], gems_slot[index1]
 def print_gems():
     gem = fill_gems()
     # 記号から属性を逆引き
@@ -174,10 +220,29 @@ def print_gems():
         print(gem, end=' ')
 # *******************プレイヤーターン*******************
 def on_player_turn(party,monster):
+    global gems_slot
+    if not gems_slot:
+        for _ in range(14):
+            gems_slot.append(fill_gems())
+
     print(f'【{party['player_name']}】のターン (HP = {party['hp']})')
     show_battle_field(party, monster)
-    command = input('コマンド? > ')
-    damage = 500
+    valid_command = False
+    while not valid_command:
+        command = input('コマンド? > ')
+        valid_command = check_valid_command(command)
+        if valid_command:
+            move_gem(command)
+            # 動かした後のフィールドを再表示
+            print('------------------------')
+            for positions in ELEMENT_POSITIONS:
+                print(f'{positions}',end=' ')
+            print('')
+            print_gems(gems_slot)
+            print('')
+            print('------------------------')
+
+    damage = 50
     # (3) 敵モンスターのHPからダメージ分の値を減らす。
     print(f'{damage}のダメージを与えた')
     monster['hp'] -= damage
