@@ -29,6 +29,19 @@ def check_valid_command(command):
         return False
     else:
         return True
+    
+# *****************スロット内の宝石を消滅させて効果を発動させる*********************
+def banish_gems(banishable_groups, party, monster):
+    for start, end in banishable_groups:
+        for i in range(start, end + 1):
+            data.gems_slot[i] = data.ELEMENT_SYMBOLS['無']
+
+    time.sleep(0.5)
+    print('消去された箇所より右側の宝石達を１マスずつ動かす')
+    gems.shift_gems(data.gems_slot, party, monster)
+    time.sleep(0.5)
+    print('右端にできた空きスロットにランダムに宝石を発生させる')
+    gems.spawn_gems()
 # *******************プレイヤーターン*******************
 def on_player_turn(party,monster):
     if not data.gems_slot:
@@ -134,15 +147,3 @@ def go_dungeon(party,monster_list):
     else:
         return monster_defeated
 
-# *****************スロット内の宝石を消滅させて効果を発動させる*********************
-def banish_gems(banishable_groups, party, monster):
-    for start, end in banishable_groups:
-        for i in range(start, end + 1):
-            data.gems_slot[i] = data.ELEMENT_SYMBOLS['無']
-
-    time.sleep(0.5)
-    print('消去された箇所より右側の宝石達を１マスずつ動かす')
-    gems.shift_gems(data.gems_slot, party, monster)
-    time.sleep(0.5)
-    print('右端にできた空きスロットにランダムに宝石を発生させる')
-    gems.spawn_gems()

@@ -74,7 +74,7 @@ def check_banishable(gems_slot):
 
     return banishable_groups
 # *******************空きスロットの右側に並ぶ宝石を左詰めする*******************
-def shift_gems(gems_slot):
+def shift_gems(gems_slot, party, monster):
     write_index = 0
     for read_index in range(len(gems_slot)):
         # 空きスロットじゃない宝石があった時
@@ -91,7 +91,9 @@ def shift_gems(gems_slot):
 
     return gems_slot
 
-
-
 # *******************空きスロットにランダムな宝石を生成する*******************
-
+def spawn_gems():
+    for i in range(14):
+        if data.gems_slot[i] == data.ELEMENT_SYMBOLS['無']:
+            data.gems_slot[i] = fill_gems()
+    return data.gems_slot
