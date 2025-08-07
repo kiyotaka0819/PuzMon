@@ -155,7 +155,6 @@ def show_battle_field(party,monster):
 
 # *******************コマンドの入力内容チェック*******************
 def check_valid_command(command):
-    pattern = r'^[a-nA-N]'
     if len(command) != 2:
         return False
     if not ('A' <= command[0] <= 'N' and 'A' <= command[1] <= 'N'):
@@ -173,7 +172,6 @@ def fill_gems():
 
 # *******************宝石スロット(14個分)の表示*******************
 def print_gems(gems_list):
-    gem = fill_gems()
     for gem in gems_list:
     # 記号から属性を逆引き
         element = None
@@ -204,20 +202,6 @@ def move_gem(command):
 def swap_gem(index1, index2):
     global gems_slot
     gems_slot[index1], gems_slot[index2] = gems_slot[index2], gems_slot[index1]
-def print_gems():
-    gem = fill_gems()
-    # 記号から属性を逆引き
-    element = None
-    for key, value in ELEMENT_SYMBOLS.items():
-        if value == gem:
-            element = key
-            break
-    # 属性が見つかった場合、色コードで表示
-    if element and element in ELEMENT_COLORS:
-        color = ELEMENT_COLORS[element]
-        print(f'\033[3{color}m{gem}\033[0m', end=' ')
-    else:
-        print(gem, end=' ')
 # *******************プレイヤーターン*******************
 def on_player_turn(party,monster):
     global gems_slot
