@@ -1,5 +1,5 @@
 from models import data
-
+import time
 # *******************装飾したモンスター名を返す*******************
 def print_monster_name(monster_data):
     # (1) モンスターの名前をキーnameで取得する
@@ -11,7 +11,23 @@ def print_monster_name(monster_data):
     mon_color = monster_data['element']
     color = data.ELEMENT_COLORS[mon_color]
     # (4) モンスター名を表示する
-    print(f'\033[3{color}m{symbol}{monster_name}{symbol}\033[0m',end='')
+    time.sleep(0.1)
+    # 背景色と文字色を白に設定
+    print(f'\033[4{color};37m{symbol}{monster_name}{symbol}\033[0m',end='')
+
+# *******************記号から属性名を取得するユーティリティ関数*******************
+def get_element_name(symbol):
+    for name, s in data.ELEMENT_SYMBOLS.items():
+        if s == symbol:
+            return name
+    return None
+
+# *******************記号から属性名を取得する関数*******************
+def get_element_name(gem_symbol):
+    for name, symbol in data.ELEMENT_SYMBOLS.items():
+        if symbol == gem_symbol:
+            return name
+    return '不明' # 見つからなかった場合は「不明」を返す
 
 # *******************味方モンスターの編成*******************
 def organize_party(player_name,friends):
@@ -42,6 +58,7 @@ def organize_party(player_name,friends):
     # (3) ディクショナリを戻り値に指定する
     return party
 
+
 # *******************パーティ情報を見る*******************
 def show_party(party):
     # (1) 引数で受け取ったパーティから味方モンスターのリストを取得する。
@@ -53,6 +70,12 @@ def show_party(party):
         ap = friend['ap']
         dp = friend['dp']
     # ② print_monster_name関数を利用してモンスター名を表示する。
-        print_monster_name(friend)
+        time.sleep(0.03)
+        # 属性の記号を取得
+        symbol = data.ELEMENT_SYMBOLS.get(friend['element'])
+        # 背景色と文字色を白に設定
+        color = data.ELEMENT_COLORS.get(friend['element'])
+        print(f'\033[4{color};37m{symbol}{friend['name']}{symbol}\033[0m',end='')
     # ③ 続けて、HP・攻撃力を表示する。
         print(f'HP = {hp} 攻撃 = {ap} 防御 = {dp}')
+

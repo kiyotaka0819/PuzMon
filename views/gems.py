@@ -1,16 +1,17 @@
-from models import data
-import time
+from models import data, party_and_monster
 from views import battle
+import time
+import random
+
 # *******************宝石スロットにランダムに宝石を発生させる******************
 def fill_gems():
-    import random
     random_num = random.randint(1, 5)
-    return data.ELEMENT_NUMBERS[random_num]
+    return data.ELEMENT_NUMBERS.get(random_num, '　')
 
 # *******************宝石スロット(14個分)の表示*******************
 def print_gems(gems_list):
     for gem in gems_list:
-    # 記号から属性を逆引き
+        # 記号から属性を逆引き
         element = None
         for key, value in data.ELEMENT_SYMBOLS.items():
             if value == gem:
@@ -18,38 +19,46 @@ def print_gems(gems_list):
                 break
         # 属性が見つかった場合、色コードで表示
         if element and element in data.ELEMENT_COLORS:
-            color = data.ELEMENT_COLORS[element]
+            # 背景色と文字色を白に設定
+            color = data.ELEMENT_COLORS.get(element)
             time.sleep(0.05)
-            print(f'\033[3{color}m{gem}\033[0m', end=' ')
+            print(f'\033[4{color};37m{gem}\033[0m', end=' ')
         else:
             print(gem, end=' ')
+    print('')
 
 # *******************gemsの移動とプリント*******************
 def move_gem(command):
     # ユーザーが入力したコマンドを分解
-    pos1 = command[0]
-    pos2 = command[1]
+    if len(command) != 2:
+        return
+    pos1 = command[0].upper()
+    pos2 = command[1].upper()
     # 文字を数字（インデックス）に変換する
-    # リストは0から始まるから、1を引く
-    index1 = data.ELEMENT_POSITIONS[pos1] - 1
-    index2 = data.ELEMENT_POSITIONS[pos2] - 1
+    index1 = data.ELEMENT_POSITIONS.get(pos1, 0) - 1
+    index2 = data.ELEMENT_POSITIONS.get(pos2, 0) - 1
 
-    # 宝石を入れ替える関数を呼び出す
-    if index1 < index2:
-        for i in range(index1, index2):
-            swap_gem(i, i+1)
-            print_gems(data.gems_slot)
-            print()
-            time.sleep(0.5)
-    elif index1 > index2:
-        for i in range(index1, index2, -1):
-            swap_gem(i, i-1)
-            print_gems(data.gems_slot)
-            print()
-            time.sleep(0.5)
+    # インデックスが範囲内かチェック
+    if 0 <= index1 < len(data.gems_slot) and 0 <= index2 < len(data.gems_slot):
+        # 宝石を入れ替える関数を呼び出す
+        if index1 < index2:
+            for i in range(index1, index2):
+                swap_gem(i, i+1)
+                print_gems(data.gems_slot)
+                time.sleep(0.1)
+        elif index1 > index2:
+            for i in range(index1, index2, -1):
+                swap_gem(i, i-1)
+                print_gems(data.gems_slot)
+                time.sleep(0.1)
+    else:
+        print("無効なコマンドです。")
+
 # *******************gemsの隣との入れ替え*******************
 def swap_gem(index1, index2):
-    data.gems_slot[index1], data.gems_slot[index2] = data.gems_slot[index2], data.gems_slot[index1]
+    gems_list = list(data.gems_slot)
+    gems_list[index1], gems_list[index2] = gems_list[index2], gems_list[index1]
+    data.gems_slot = tuple(gems_list)
 
 # *******************宝石の並びを調べて消去可能な箇所を検索して返す*******************
 def check_banishable(gems_slot):
@@ -69,31 +78,95 @@ def check_banishable(gems_slot):
         # 3個以上連続していたら、消去対象としてリストに追加
         if j - i >= 3:
             banishable_groups.append((i, j - 1))
-            print(f'{current_gem}が{j - i}個連続です　デバック用確認後消去')
         i = j
 
     return banishable_groups
-# *******************空きスロットの右側に並ぶ宝石を左詰めする*******************
-def shift_gems(gems_slot, party, monster):
-    write_index = 0
-    for read_index in range(len(gems_slot)):
-        # 空きスロットじゃない宝石があった時
-        if gems_slot[read_index] != data.ELEMENT_SYMBOLS['無']:
-            # 宝石を移動させる必要があれば
-            if read_index != write_index:
-                # 宝石を入れ替える
-                gems_slot[write_index], gems_slot[read_index] = gems_slot[read_index], gems_slot[write_index]
-                # 画面を再表示してアニメーションを見せる
-                battle.show_battle_field(party, monster)
-                time.sleep(0.5)
-            # 宝石を書き込む場所を次に進める
-            write_index += 1
 
-    return gems_slot
+# *******************宝石を消してダメージを与える*******************
+def banish_gems(banishable_groups, party, monster, combo_count):
+    gems_slot_list = list(data.gems_slot)
+    banished_count = 0
+    for start, end in banishable_groups:
+        gem_symbol = gems_slot_list[start]
+        for i in range(start, end + 1):
+            if gems_slot_list[i] != '　':
+                gems_slot_list[i] = data.ELEMENT_SYMBOLS.get('無', '　')
+                banished_count += 1
+
+        # ダメージ計算
+        damage = battle.calculate_damage(party, gem_symbol, end - start + 1, combo_count)
+        if damage > 0:
+            monster['hp'] -= damage
+
+            # 攻撃したモンスターの名前を取得するロジック
+            attacker_name = "不明なモンスター"
+            gem_element = party_and_monster.get_element_name(gem_symbol)
+            for friend in party['friends']:
+                if friend['element'] == gem_element:
+                    attacker_name = friend['name']
+                    break
+
+            print(f"【{attacker_name}】の攻撃！ {combo_count} Combo!! {damage}のダメージを与えた")
+            print(f"[42;37m敵モンスターに{damage}のダメージを与えた[0m")
+
+    data.gems_slot = tuple(gems_slot_list)
+    print_gems(data.gems_slot)
+    time.sleep(0.3)
+    return banished_count > 0
+
+
+# *******************空きスロットの右側に並ぶ宝石を左詰めする*******************
+def shift_gems(gems_slot):
+    gems_slot_list = list(gems_slot)
+
+    # 宝石を左に詰めるアニメーション
+    for _ in range(len(gems_slot_list)):
+        moved = False
+        for i in range(len(gems_slot_list) - 1):
+            if gems_slot_list[i] == '　' and gems_slot_list[i + 1] != '　':
+                gems_slot_list[i], gems_slot_list[i + 1] = gems_slot_list[i + 1], gems_slot_list[i]
+                data.gems_slot = tuple(gems_slot_list)
+                print_gems(data.gems_slot)
+                time.sleep(0.1)
+                moved = True
+        if not moved:
+            break
+    time.sleep(0.3)
 
 # *******************空きスロットにランダムな宝石を生成する*******************
 def spawn_gems():
-    for i in range(14):
-        if data.gems_slot[i] == data.ELEMENT_SYMBOLS['無']:
-            data.gems_slot[i] = fill_gems()
-    return data.gems_slot
+    gems_slot_list = list(data.gems_slot)
+    new_gems = []
+
+    # 無属性の数を数える
+    empty_slots = gems_slot_list.count('　')
+
+    # コンボが発生しないように宝石を生成
+    for _ in range(empty_slots):
+        new_gem = fill_gems()
+        # 直前の2つの宝石と同じにならないようにチェック
+        while len(new_gems) >= 2 and new_gem == new_gems[-1] and new_gem == new_gems[-2]:
+            new_gem = fill_gems()
+        new_gems.append(new_gem)
+
+    # 後ろから無属性の場所に新しい宝石を詰める
+    new_gem_index = 0
+    for i in range(len(gems_slot_list) - empty_slots, len(gems_slot_list)):
+        gems_slot_list[i] = new_gems[new_gem_index]
+        new_gem_index += 1
+
+    data.gems_slot = tuple(gems_slot_list)
+    print_gems(data.gems_slot)
+    time.sleep(0.3)
+
+# *******************指定した値を指定した範囲内で乱数を出す*******************
+def blur_damage(value, blur_percentage):
+    blur_amount = value * blur_percentage / 100
+    return value + random.uniform(-blur_amount, blur_amount)
+
+# *******************パーティーのHP回復*******************
+def do_recover(party, amount):
+    party['hp'] += amount
+    if party['hp'] > party['max_hp']:
+        party['hp'] = party['max_hp']
+    return party['hp']
