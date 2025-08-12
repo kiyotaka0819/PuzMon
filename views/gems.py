@@ -21,7 +21,7 @@ def print_gems(gems_list):
         if element and element in data.ELEMENT_COLORS:
             # 背景色と文字色を白に設定
             color = data.ELEMENT_COLORS.get(element)
-            time.sleep(0.05)
+            time.sleep(0.03)
             print(f'\033[4{color};37m{gem}\033[0m', end=' ')
         else:
             print(gem, end=' ')
@@ -119,27 +119,30 @@ def banish_gems(banishable_groups, party, monster, combo_count):
 def shift_gems(gems_slot):
     gems_slot_list = list(gems_slot)
 
-    # 宝石を左に詰めるアニメーション
-    for _ in range(len(gems_slot_list)):
-        moved = False
-        for i in range(len(gems_slot_list) - 1):
-            if gems_slot_list[i] == '　' and gems_slot_list[i + 1] != '　':
-                gems_slot_list[i], gems_slot_list[i + 1] = gems_slot_list[i + 1], gems_slot_list[i]
-                data.gems_slot = tuple(gems_slot_list)
-                print_gems(data.gems_slot)
-                time.sleep(0.1)
-                moved = True
-        if not moved:
-            break
-    time.sleep(0.3)
-
+    # 空きスロットの数だけ繰り返す
+    num_empty_slots = gems_slot_list.count(' ')
+    for _ in range(num_empty_slots):
+        # 空きスロットを左から探す
+        if ' ' in gems_slot_list:
+            empty_index = gems_slot_list.index(' ')
+            
+            # 空きスロットをリストから取り除く
+            empty_slot = gems_slot_list.pop(empty_index)
+            
+            # 取り除いた空きスロットを一番右に追加する
+            gems_slot_list.append(empty_slot)
+            
+            # 変化をアニメーションとして表示する
+            data.gems_slot = tuple(gems_slot_list)
+            print_gems(data.gems_slot)
+            time.sleep(0.05)
 # *******************空きスロットにランダムな宝石を生成する*******************
 def spawn_gems():
     gems_slot_list = list(data.gems_slot)
     new_gems = []
 
     # 無属性の数を数える
-    empty_slots = gems_slot_list.count('　')
+    empty_slots = gems_slot_list.count(' ')
 
     # コンボが発生しないように宝石を生成
     for _ in range(empty_slots):
@@ -157,7 +160,7 @@ def spawn_gems():
 
     data.gems_slot = tuple(gems_slot_list)
     print_gems(data.gems_slot)
-    time.sleep(0.3)
+    time.sleep(0.1)
 
 # *******************指定した値を指定した範囲内で乱数を出す*******************
 def blur_damage(value, blur_percentage):
