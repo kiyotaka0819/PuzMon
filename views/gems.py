@@ -3,6 +3,21 @@ from views import battle
 import time
 import random
 import sys
+import pygame
+
+
+# Pygameのミキサー機能を初期化
+pygame.mixer.init()
+
+# 効果音ファイルを読み込む
+# ファイルのパスは、main.pyからの相対パスで指定します。
+try:
+    sound_heal = pygame.mixer.Sound('sounds/ステータス治療1.mp3') # 回復音
+    sound_attack_friend = pygame.mixer.Sound('sounds/大キック.mp3') # 攻撃音
+except pygame.error as e:
+    print(f"サウンドファイルの読み込みに失敗しました: {e}")
+    sound_heal = None
+    sound_attack_friend = None
 
 # 1文字ずつゆっくり表示する関数
 def print_slowly(text, end='\n'):
@@ -32,20 +47,17 @@ def print_gems(gems_list):
     """
     for gem in gems_list:
         element = None
-        # 宝石の記号から属性名を取得
+        # 記号から属性名を取得
         for key, value in data.ELEMENT_SYMBOLS.items():
-            # 辞書のvalueと宝石の記号が一致した場合
             if value == gem:
                 element = key
                 break
 
-        # 属性名が見つかった場合
         if element and element in data.ELEMENT_COLORS:
             color = data.ELEMENT_COLORS.get(element)
             time.sleep(0.03)
             # ANSIエスケープシーケンスで背景色と文字色を白に設定
             print(f'\033[4{color};37m{gem}\033[0m', end=' ')
-        # 属性が見つからない場合（無属性など）
         else:
             print(gem, end=' ')
     print('')
@@ -151,12 +163,17 @@ def banish_gems(banishable_group, party, monster, combo_count):
     if gem_element == '命':
         # 回復処理
         combo_multiplier = 1 + (combo_count - 1) * 0.25
-        recover_amount = int(blur_damage(20 * combo_multiplier, 10))
+        # 修正点: 回復の基本量を30に引き上げ
+        recover_amount = int(blur_damage(30 * combo_multiplier, 10))
         do_recover(party, recover_amount)
-
         print_slowly(f'命属性による回復！', end='')
         print_slowly(f'{combo_count} Combo!!', end='')
-        time.sleep(0.3)
+
+        # 修正点: メッセージ出力後に回復SEを鳴らす
+        if sound_heal:
+            sound_heal.play()
+            time.sleep(0.5)
+
         print(f'\033[45;37m', flush=True)
         print_slowly(f'パーティーのHPが{recover_amount}回復した')
         print(f'\033[0m', flush=True)
@@ -177,7 +194,12 @@ def banish_gems(banishable_group, party, monster, combo_count):
             print_slowly(f"【{attacker_symbol}{attacker_name}{attacker_symbol}】", end='')
             print(f'\033[0m', end='')
             print_slowly(f"の攻撃！ {combo_count} Combo!!")
-            time.sleep(0.3)
+
+            # 修正点: メッセージ出力後に攻撃SEを鳴らす
+            if sound_attack_friend:
+                sound_attack_friend.play()
+                time.sleep(0.5)
+
             print(f'\033[42;37m', end='', flush=True)
             print_slowly('敵モンスターに', end='')
             print_slowly(f'{damage}のダメージを与えた')
@@ -190,21 +212,27 @@ def banish_gems(banishable_group, party, monster, combo_count):
 def shift_gems(gems_slot):
     """
     空きスロット(' ')をリストの左端に詰める。
+    無属性がすでに右端に詰まっており、盤面に変化がない場合は表示を更新しない。
     """
     gems_slot_list = list(gems_slot)
-    # 空きスロットの数をカウント
-    num_empty_slots = gems_slot_list.count(' ')
-    # 空きスロットの数だけループ
-    for _ in range(num_empty_slots):
-        # 空きスロット(' ')が存在する場合
-        if ' ' in gems_slot_list:
-            empty_index = gems_slot_list.index(' ')
-            empty_slot = gems_slot_list.pop(empty_index)
-            # 空きスロットをリストの末尾に追加
-            gems_slot_list.append(empty_slot)
+
+    # 盤面が変化しなくなるまでループ
+    while True:
+        original_gems_list = list(gems_slot_list)
+
+        # 左から右に走査し、無属性の宝石を見つけたら右隣の宝石と入れ替える
+        for i in range(len(gems_slot_list) - 1):
+            if gems_slot_list[i] == ' ' and gems_slot_list[i+1] != ' ':
+                gems_slot_list[i], gems_slot_list[i+1] = gems_slot_list[i+1], gems_slot_list[i]
+
+        # 盤面に変化があった場合のみ表示
+        if original_gems_list != gems_slot_list:
             data.gems_slot = tuple(gems_slot_list)
             print_gems(data.gems_slot)
             time.sleep(0.05)
+        else:
+            # 盤面に変化がなければループを抜ける
+            break
 
 # 空きスロットにランダムな新しい宝石を生成する
 def spawn_gems():

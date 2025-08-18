@@ -10,8 +10,7 @@ def print_monster_name(monster_data):
     monster_name = monster_data['name']
     mon_element = monster_data['element']
     symbol = data.ELEMENT_SYMBOLS[mon_element]
-    mon_color = monster_data['element']
-    color = data.ELEMENT_COLORS[mon_color]
+    color = data.ELEMENT_COLORS[mon_element]
     time.sleep(0.1)
     # ANSIエスケープシーケンスで色付き表示
     print(f'\033[4{color};37m{symbol}{monster_name}{symbol}\033[0m',end='')

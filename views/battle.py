@@ -1,8 +1,35 @@
 from models import data, party_and_monster
-from . import gems
+from views import gems
 import time
 import random
 import sys
+import pygame
+
+
+# Pygameのミキサー機能を初期化
+pygame.mixer.init()
+
+# 効果音ファイルを読み込む
+# ファイルのパスは、main.pyからの相対パスで指定
+try:
+    # 共通の効果音
+    sound_banish = pygame.mixer.Sound('sounds/パワーチャージ.mp3') # 宝石を消す音
+
+    # 敵モンスターごとの攻撃音を辞書に格納
+    monster_attack_sounds = {
+        'スライム': pygame.mixer.Sound('sounds/スライムの攻撃.mp3'),
+        'ゴブリン': pygame.mixer.Sound('sounds/打撃4.mp3'),
+        'オオコウモリ': pygame.mixer.Sound('sounds/ハトが飛び立つ2.mp3'),
+        'ウェアウルフ': pygame.mixer.Sound('sounds/オオカミの遠吠え.mp3'),
+        'ドラゴン': pygame.mixer.Sound('sounds/ドラゴンの鳴き声2.mp3'),
+    }
+
+except pygame.error as e:
+    print(f"サウンドファイルの読み込みに失敗しました: {e}")
+    # エラー時のフォールバック処理
+    sound_banish = None
+    monster_attack_sounds = {}
+
 
 # 1文字ずつゆっくり表示する関数
 def print_slowly(text, end='\n'):
@@ -26,7 +53,8 @@ def show_battle_field(party,monster):
     print(f'HP = {monster['hp']} / {monster['max_hp']}')
     time.sleep(0.3)
     print('------------------------')
-    for positions in data.ELEMENT_POSITIONS:
+    # ELEMENT_POSITIONSがタプルから辞書に変わったため、keys()で表示する
+    for positions in data.ELEMENT_POSITIONS.keys():
         time.sleep(0.03)
         print(f'{positions}',end=' ')
     print('')
@@ -67,7 +95,12 @@ def banish_combos(party, monster):
 
         # 1つのコンボグループを処理
         for group in banishable_groups:
-            # 宝石を消去し、ダメージや回復効果を発動（メッセージもここで出力）
+            # 修正点: 宝石が消える音を各コンボの前に鳴らす
+            if sound_banish:
+                sound_banish.play()
+            time.sleep(0.5)
+
+            # 宝石を消去し、ダメージや回復効果を発動（メッセージとSEもここで出力）
             gems.banish_gems(group, party, monster, combo_count)
             combo_count += 1
 
@@ -145,6 +178,11 @@ def on_enemy_turn(party,monster):
     # 敵のターン表示部分
     print_slowly(f"【{monster['name']}のターン(HP={monster['hp']})】", end='')
     print('')
+
+    # 敵モンスター名で辞書から効果音を取得して再生
+    enemy_name = monster['name']
+    if enemy_name in monster_attack_sounds and monster_attack_sounds[enemy_name]:
+        monster_attack_sounds[enemy_name].play()
 
     # ダメージ表示部分
     print_slowly(f'パーティーに', end='')
