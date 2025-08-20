@@ -1,23 +1,56 @@
 from models import data, party_and_monster
-from views import battle
 import time
 import random
 import sys
 import pygame
+import os
 
+# スクリプトのディレクトリ(.../PuzMon/views)を基準にプロジェクトルート(.../PuzMon)を特定
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(script_dir)
 
 # Pygameのミキサー機能を初期化
 pygame.mixer.init()
 
 # 効果音ファイルを読み込む
-# ファイルのパスは、main.pyからの相対パスで指定します。
+# プロジェクトルートからの絶対パスで指定
 try:
-    sound_heal = pygame.mixer.Sound('sounds/ステータス治療1.mp3') # 回復音
-    sound_attack_friend = pygame.mixer.Sound('sounds/大キック.mp3') # 攻撃音
+    sound_heal_path = os.path.join(project_root, 'sounds', 'ステータス治療1.mp3')
+    sound_attack_friend_path = os.path.join(project_root, 'sounds', '大キック.mp3')
+    sound_heal = pygame.mixer.Sound(sound_heal_path) # 回復音
+    sound_attack_friend = pygame.mixer.Sound(sound_attack_friend_path) # 攻撃音
 except pygame.error as e:
     print(f"サウンドファイルの読み込みに失敗しました: {e}")
     sound_heal = None
     sound_attack_friend = None
+
+# ダメージ量を計算する
+def calculate_damage(party, gem_symbol, num_gems, combo_count):
+    """
+    プレイヤーの攻撃による敵へのダメージ量を計算する。
+    """
+    damage = 0
+    gem_element = None
+    # 宝石の記号から属性名を取得
+    for key, value in data.ELEMENT_SYMBOLS.items():
+        if value == gem_symbol:
+            gem_element = key
+            break
+
+    # 同じ属性を持つ味方モンスターの攻撃力を取得し、ダメージを計算
+    for friend in party['friends']:
+        # 味方モンスターの属性が宝石の属性と一致した場合
+        if friend['element'] == gem_element:
+            base_damage = friend['ap']
+            # 3個より多く消した分のボーナスを計算
+            damage_multiplier = 1 + (num_gems - 3) * 0.5
+            # コンボ数によるボーナスを計算
+            combo_multiplier = 1 + (combo_count - 1) * 0.25
+            # 全ての補正をかけてダメージに加算
+            damage += base_damage * damage_multiplier * combo_multiplier
+            break
+
+    return int(damage)
 
 # 1文字ずつゆっくり表示する関数
 def print_slowly(text, end='\n'):
@@ -179,7 +212,7 @@ def banish_gems(banishable_group, party, monster, combo_count):
         print(f'\033[0m', flush=True)
     else:
         # ダメージ処理
-        damage = battle.calculate_damage(party, gem_symbol, num_gems, combo_count)
+        damage = calculate_damage(party, gem_symbol, num_gems, combo_count)
         if damage > 0:
             monster['hp'] -= damage
             attacker_name = "不明なモンスター"

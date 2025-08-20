@@ -4,25 +4,31 @@ import time
 import random
 import sys
 import pygame
+import os
 
+# スクリプトのディレクトリ(.../PuzMon/views)を基準にプロジェクトルート(.../PuzMon)を特定
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(script_dir)
 
 # Pygameのミキサー機能を初期化
 pygame.mixer.init()
 
 # 効果音ファイルを読み込む
-# ファイルのパスは、main.pyからの相対パスで指定
+# プロジェクトルートからの絶対パスで指定
 try:
     # 共通の効果音
-    sound_banish = pygame.mixer.Sound('sounds/パワーチャージ.mp3') # 宝石を消す音
+    sound_banish_path = os.path.join(project_root, 'sounds', 'パワーチャージ.mp3')
+    sound_banish = pygame.mixer.Sound(sound_banish_path) # 宝石を消す音
 
     # 敵モンスターごとの攻撃音を辞書に格納
-    monster_attack_sounds = {
-        'スライム': pygame.mixer.Sound('sounds/スライムの攻撃.mp3'),
-        'ゴブリン': pygame.mixer.Sound('sounds/打撃4.mp3'),
-        'オオコウモリ': pygame.mixer.Sound('sounds/ハトが飛び立つ2.mp3'),
-        'ウェアウルフ': pygame.mixer.Sound('sounds/オオカミの遠吠え.mp3'),
-        'ドラゴン': pygame.mixer.Sound('sounds/ドラゴンの鳴き声2.mp3'),
+    monster_sound_files = {
+        'スライム': 'スライムの攻撃.mp3',
+        'ゴブリン': '打撃4.mp3',
+        'オオコウモリ': 'ハトが飛び立つ2.mp3',
+        'ウェアウルフ': 'オオカミの遠吠え.mp3',
+        'ドラゴン': 'ドラゴンの鳴き声2.mp3',
     }
+    monster_attack_sounds = { name: pygame.mixer.Sound(os.path.join(project_root, 'sounds', fname)) for name, fname in monster_sound_files.items() }
 
 except pygame.error as e:
     print(f"サウンドファイルの読み込みに失敗しました: {e}")
@@ -108,34 +114,6 @@ def banish_combos(party, monster):
         gems.shift_gems(data.gems_slot)
         gems.spawn_gems()
         time.sleep(0.5)
-
-# ダメージ量を計算する
-def calculate_damage(party, gem_symbol, num_gems, combo_count):
-    """
-    プレイヤーの攻撃による敵へのダメージ量を計算する。
-    """
-    damage = 0
-    gem_element = None
-    # 宝石の記号から属性名を取得
-    for key, value in data.ELEMENT_SYMBOLS.items():
-        if value == gem_symbol:
-            gem_element = key
-            break
-
-    # 同じ属性を持つ味方モンスターの攻撃力を取得し、ダメージを計算
-    for friend in party['friends']:
-        # 味方モンスターの属性が宝石の属性と一致した場合
-        if friend['element'] == gem_element:
-            base_damage = friend['ap']
-            # 3個より多く消した分のボーナスを計算
-            damage_multiplier = 1 + (num_gems - 3) * 0.5
-            # コンボ数によるボーナスを計算
-            combo_multiplier = 1 + (combo_count - 1) * 0.25
-            # 全ての補正をかけてダメージに加算
-            damage += base_damage * damage_multiplier * combo_multiplier
-            break
-
-    return int(damage)
 
 # プレイヤーのターン処理
 def on_player_turn(party,monster):
