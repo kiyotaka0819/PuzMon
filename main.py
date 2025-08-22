@@ -1,8 +1,25 @@
+import os
+import sys
+import pygame
 from models import data, party_and_monster
 from views import battle
 
 # メインの処理を実行する関数
 def main():
+    # Pygameのミキサーを初期化
+    pygame.mixer.init()
+
+    # 絶対パスを直接指定
+    bgm_path = 'C:\\Users\\user\\VisualStudioCode_GitHub\\PuzMon\\sounds\\戦闘BGM.mp3'
+    
+    # BGMを読み込んで無限ループ再生
+    try:
+        pygame.mixer.music.load(bgm_path)
+        pygame.mixer.music.play(loops=-1)
+    except pygame.error as e:
+        print(f"BGMファイルの読み込みに失敗しました: {e}")
+        # エラー時のフォールバックとしてBGMを再生しない
+
     print('*** Puzzle & Monsters ***')
     player_name = ''
     # プレイヤー名が入力されるまでループ
